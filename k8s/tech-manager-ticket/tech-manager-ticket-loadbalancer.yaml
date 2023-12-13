@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tech-manager-ticket-deployment-service
+spec:
+  selector:
+    app: tech-manager-ticket-deployment-service
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 8000
+      nodePort: 31110

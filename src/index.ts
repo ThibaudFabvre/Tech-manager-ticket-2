@@ -1,78 +1,69 @@
-import express, { Express, Request, Response, Application } from 'express';
-import { MongoClient } from 'mongodb';
+import express, { Request, Response, Application } from 'express';
 import dotenv from 'dotenv';
 
 //For env File
 dotenv.config();
 
-const client = new MongoClient(process.env.DB_URI as string);
+var admin = require('firebase-admin');
 
-const app: Application = express();
+var serviceAccount = require('../qa-skyrave.io-service-account-key.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+export const app: Application = express();
 const port = process.env.PORT || 8000;
+
+const db = admin.firestore();
+let collection = db.collection('tickets');
 
 app.get('/', async (req: Request, res: Response) => {
   try {
-    const database = client.db('tech-manager');
-    const collection = database.collection('tickets');
-
-    const query = { id: req.body.id };
-    const response = await collection.findOne(query);
-    console.log(response);
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    const response = await collection.get();
+    const formattedResponse = response.docs.map((element: any) =>
+      element.data()
+    );
+    return res.json({ status: 200, response: formattedResponse });
+  } catch (e) {
+    throw e;
   }
-
-  res.send('Welcome to Express & TypeScript Server');
 });
 
 app.post('/', async (req: Request, res: Response) => {
   try {
-    const database = client.db('tech-manager');
-    const collection = database.collection('tickets');
+    const newDocumentRef = collection(collection).doc();
 
-    const response = await collection.insertOne(req.body);
-    console.log(response);
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    // Set the data for the new document
+    const response = await newDocumentRef.set(req.body);
+    return res.json({ status: 200, response });
+  } catch (e) {
+    throw e;
   }
-
-  res.send('Welcome to Express & TypeScript Server');
 });
 
 app.put('/', async (req: Request, res: Response) => {
   try {
-    const database = client.db('tech-manager');
-    const collection = database.collection('tickets');
-
-    const query = { id: req.body.id };
-    const response = await collection.updateOne(query, req.body);
-    console.log(response);
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    let document = collection.doc(req.body.docID);
+    // Perform the update
+    const response = document.update(req.body);
+    return res.json({ status: 200, response });
+  } catch (e) {
+    throw e;
   }
-
-  res.send('Welcome to Express & TypeScript Server');
 });
 
 app.delete('/', async (req: Request, res: Response) => {
   try {
-    const database = client.db('tech-manager');
-    const collection = database.collection('tickets');
+    let document = collection.doc(req.body.id);
 
-    const query = { id: req.body.id };
-    const response = await collection.deleteOne(query);
-    console.log(response);
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    const response = await document.delete();
+    return res.json({ status: 200, response });
+  } catch (e) {
+    throw e;
   }
-
-  res.send('Welcome to Express & TypeScript Server');
 });
 
 app.listen(port, () => {
-  console.log(`Server is operational on http://localhost:${port}`);
+  console.log(` Server is operational on http://localhost:${port} `);
 });

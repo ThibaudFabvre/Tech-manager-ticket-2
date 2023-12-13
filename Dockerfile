@@ -1,10 +1,20 @@
-FROM node:latest
+FROM --platform=linux/amd64 node:latest AS development
 WORKDIR /app
 COPY package.json /app/
-COPY src /app/src/
-COPY tsconfig.json /app/
-COPY nodemon.json /app/
 RUN yarn install
-EXPOSE 8000
+COPY . .
+RUN yarn build
 
-CMD ["yarn", "start:prod"]
+
+FROM --platform=linux/amd64 node:latest AS production
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+WORKDIR /app
+COPY package.json /app/
+RUN yarn install --only=prod
+COPY . .
+COPY --from=development /app/dist ./dist
+
+CMD ["node", dist/main]
+
+EXPOSE 8000
